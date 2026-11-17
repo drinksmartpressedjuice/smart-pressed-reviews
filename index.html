@@ -54,7 +54,7 @@
       margin: 0 auto 32px;
     }
 
-    /* Local Preview Helper Banner (Hidden when hosted on GitHub Pages) */
+    /* Local Preview Helper */
     .local-helper {
       display: none;
       background: #fff8e6;
@@ -299,7 +299,7 @@
   <div class="container">
     <header>
       <h1>Smart Pressed Juice Reviews</h1>
-      <p class="subtitle">Real reviews from verified customers sharing their daily results with organic, cold-pressed superfood nutrition.</p>
+      <p class="subtitle">Real 4 &amp; 5-star reviews from verified customers sharing their daily results with organic, cold-pressed superfood nutrition.</p>
     </header>
 
     <!-- Local Preview Helper -->
@@ -313,7 +313,7 @@
     <div class="rating-banner">
       <div class="rating-stat">
         <div class="number" id="total-count-stat">2,800+</div>
-        <div class="label">Verified Reviews</div>
+        <div class="label">Verified 4 &amp; 5-Star Reviews</div>
       </div>
       <div class="rating-stat">
         <div class="stars-large">★★★★★</div>
@@ -393,7 +393,7 @@
         text: "Just one scoop and I have all my vegetables for the day. Zero juicer cleanup and tastes great mixed with cold water or apple juice.",
         product: "Organic Pressed Greens",
         category: "greens",
-        date: "Verified Customer",
+        date: "2026-01-15",
         rating: 5
       },
       {
@@ -425,6 +425,7 @@
       if (h.includes('cut-cravings')) return 'Cut Cravings Bundle';
       if (h.includes('everything-you-need')) return 'Everything You Need Bundle';
       if (h.includes('immune-wellness') || h.includes('immunity')) return 'Immunity Wellness';
+      if (h.includes('maintenance-package')) return 'Maintenance Package';
       if (h.includes('life-bundle')) return 'Life Bundle';
       if (h.includes('debloat-bundle')) return 'Debloat Bundle';
       if (h.includes('energy-bundle')) return 'Energy Bundle';
@@ -437,6 +438,23 @@
       if (h.includes('proteini') || h.includes('vanilla')) return 'proteini';
       if (h.includes('green') || h.includes('immun') || h.includes('beet')) return 'greens';
       return 'bundles';
+    }
+
+    // Helper to format date strings like "2026-05-10" into "May 10, 2026"
+    function formatPrettyDate(dateStr) {
+      if (!dateStr) return '';
+      const cleanDate = dateStr.split(' ')[0]; // Strip timestamp if present
+      const parts = cleanDate.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+      }
+      return cleanDate;
     }
 
     function parseCSV(text) {
@@ -476,14 +494,17 @@
           const name = (r[idxAuthor] || 'Verified Buyer').trim();
           const rawHandle = (r[idxProduct] || '').trim();
           const product = formatProductName(rawHandle);
-          const date = (r[idxDate] || '').split(' ')[0];
-          return { name, title, text: body, product, category: detectCategory(rawHandle), rawHandle, date, rating };
+          const dateStr = (r[idxDate] || '').trim();
+          return { name, title, text: body, product, category: detectCategory(rawHandle), rawHandle, date: dateStr, rating };
         })
         .filter(r => {
           const isMaintenancePackage = r.rawHandle.toLowerCase().includes('maintenance-package');
           const isPositive = (r.rating === 4 || r.rating === 5);
           return !isMaintenancePackage && isPositive && r.text.length > 5;
         });
+
+      // Sort newest first
+      parsed.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
       if (parsed.length > 0) {
         allReviews = parsed;
@@ -510,7 +531,9 @@
         }
       }
 
+      fallbackReviews.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       allReviews = fallbackReviews;
+
       if (window.location.protocol === 'file:') {
         document.getElementById('local-helper').style.display = 'block';
       }
@@ -550,6 +573,7 @@
 
       container.innerHTML = slice.map(r => {
         const stars = r.rating === 4 ? '★★★★☆' : '★★★★★';
+        const prettyDate = formatPrettyDate(r.date);
         return `
           <article class="card">
             <div>
@@ -560,7 +584,7 @@
             <div class="reviewer-info">
               <span class="reviewer-name">${escapeHTML(r.name)}</span>
               <span class="verified-badge">Verified Buyer</span>
-              <div class="meta-line">${escapeHTML(r.product)}${r.date ? ' · ' + escapeHTML(r.date) : ''}</div>
+              <div class="meta-line">${escapeHTML(r.product)}${prettyDate ? ' · ' + escapeHTML(prettyDate) : ''}</div>
             </div>
           </article>
         `;
