@@ -302,17 +302,17 @@
       <p class="subtitle">Real 4 &amp; 5-star reviews from verified customers sharing their daily results with organic, cold-pressed superfood nutrition.</p>
     </header>
 
-    <!-- Local Preview Helper (Only displays if opened directly from desktop without a server) -->
+    <!-- Local Preview Helper -->
     <div id="local-helper" class="local-helper">
       Previewing locally? Browsers block automatic CSV loading from desktop folders.
-      <label for="csv-file-input">Select reviews.csv to Load All 2,884 Reviews</label>
+      <label for="csv-file-input">Select reviews.csv to Load All Reviews</label>
       <input type="file" id="csv-file-input" accept=".csv" />
     </div>
 
     <!-- Aggregate Stats Banner -->
     <div class="rating-banner">
       <div class="rating-stat">
-        <div class="number" id="total-count-stat">2,884</div>
+        <div class="number" id="total-count-stat">2,800+</div>
         <div class="label">Verified 4 &amp; 5-Star Reviews</div>
       </div>
       <div class="rating-stat">
@@ -412,7 +412,6 @@
     let currentSearch = '';
     let visibleCount = 24;
 
-    // Convert Shopify product handles into clean display names
     function formatProductName(handle = '') {
       const h = handle.toLowerCase();
       if (!h) return 'Smart Pressed Juice';
@@ -426,7 +425,6 @@
       if (h.includes('cut-cravings')) return 'Cut Cravings Bundle';
       if (h.includes('everything-you-need')) return 'Everything You Need Bundle';
       if (h.includes('immune-wellness') || h.includes('immunity')) return 'Immunity Wellness';
-      if (h.includes('maintenance-package')) return 'Maintenance Package';
       if (h.includes('life-bundle')) return 'Life Bundle';
       if (h.includes('debloat-bundle')) return 'Debloat Bundle';
       if (h.includes('energy-bundle')) return 'Energy Bundle';
@@ -479,9 +477,13 @@
           const rawHandle = (r[idxProduct] || '').trim();
           const product = formatProductName(rawHandle);
           const date = (r[idxDate] || '').split(' ')[0];
-          return { name, title, text: body, product, category: detectCategory(rawHandle), date, rating };
+          return { name, title, text: body, product, category: detectCategory(rawHandle), rawHandle, date, rating };
         })
-        .filter(r => r.text.length > 5 && (r.rating === 4 || r.rating === 5));
+        .filter(r => {
+          const isMaintenancePackage = r.rawHandle.toLowerCase().includes('maintenance-package');
+          const isPositive = (r.rating === 4 || r.rating === 5);
+          return !isMaintenancePackage && isPositive && r.text.length > 5;
+        });
 
       if (parsed.length > 0) {
         allReviews = parsed;
@@ -508,7 +510,6 @@
         }
       }
 
-      // If all fetch paths fail (e.g., opened locally via file://), use fallback & show local picker
       allReviews = fallbackReviews;
       if (window.location.protocol === 'file:') {
         document.getElementById('local-helper').style.display = 'block';
